@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Minimal BTC WIF wallet adapter for BTCRecover-Level-Up.
+BTC WIF wallet adapter for BTCRecover-Level-Up.
 
 Requirements:
   - BLOCKBOOK_ENDPOINTS["BTC"] set to a working Blockbook-like API.
@@ -12,25 +12,33 @@ Provides:
   - sweep_to(outputs, fee_rate) -> [txid]
 """
 
+from typing import List, Dict, Any
 import json
 import sys
-from typing import List, Dict, Any
+import urllib.request
 
-from blockbook_balance import (
-    get_balances_for_addresses,
-    BlockbookError,
-)
+from blockbook_balance import get_balances_for_addresses, BlockbookError
 from blockbook_config import BLOCKBOOK_ENDPOINTS
 
-# You can swap this for your own EC/addr lib or PyKryptonite.
-from bitcoin import (
-    decode_privkey,
-    encode_pubkey,
-    privkey_to_pubkey,
-    pubkey_to_address,
+from bitcoin.core import (
+    COutPoint,
+    CTxIn,
+    CTxOut,
+    CMutableTransaction,
+    b2x,
+    lx,
 )
-from bitcoin import decode_privkey
-from bitcoin.wallet import CBitcoinSecret
+from bitcoin.core.script import (
+    CScript,
+    OP_DUP,
+    OP_HASH160,
+    OP_EQUALVERIFY,
+    OP_CHECKSIG,
+    SIGHASH_ALL,
+    SignatureHash,
+)
+from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
+from bitcoin.core import Hash160
 
 
 class WIFWallet:
@@ -43,9 +51,9 @@ class WIFWallet:
 
     def get_all_addresses(self, max_gap: int = 1) -> List[str]:
         """
-        For a single WIF, we just return its one P2PKH address.
+        For a single WIF, return its P2PKH address.
         """
-        addr = str(self._secret.pub.key.GetAddress())
+        addr = str(P2PKHBitcoinAddress.from_pubkey(self._secret.pub))
         return [addr]
 
     def _fetch_utxos(self) -> List[Dict[str, Any]]:
@@ -57,13 +65,11 @@ class WIFWallet:
 
         addrs = self.get_all_addresses()
         info = get_balances_for_addresses("BTC", addrs)
-        utxos: List[Dict[str, Any]] = []
 
+        utxos: List[Dict[str, Any]] = []
         for a in info.get("addresses", []):
             raw = a.get("raw", {})
-            # Blockbook v2 format: raw["txids"] etc. You may need to
-            # adjust this depending on your actual instance.
-            # For now we assume there is a "transactions" / "utxo" field:
+            # Expect Blockbook v2: raw["utxo"] list
             for u in raw.get("utxo", []):
                 utxos.append(
                     {
@@ -81,8 +87,8 @@ class WIFWallet:
         Build a single sweep transaction on BTC mainnet:
 
         - Inputs: all UTXOs for this WIF.
-        - Outputs: as provided (user + service fee).
-        - fee_rate: sat/vB, approximate.
+        - Outputs: as provided (e.g. user + service fee).
+        - fee_rate: sat/vB (approx).
 
         Returns list of txids broadcast via Blockbook API.
         """
@@ -94,7 +100,6 @@ class WIFWallet:
         total_in = sum(u["value"] for u in utxos)
         total_out = sum(o["value"] for o in outputs)
 
-        # crude fee estimate: assume 148 bytes per input, 34 per output + 10
         est_vbytes = 148 * len(utxos) + 34 * len(outputs) + 10
         fee = fee_rate * est_vbytes
 
@@ -105,19 +110,8 @@ class WIFWallet:
 
         change = total_in - total_out - fee
         if change > 0:
-            # Optional: send change back to user or to fee address.
-            # For simplicity, add to user output 0:
+            # For now, add change to first user output
             outputs[0]["value"] += change
-
-        # Build raw tx (using python-bitcoinlib or bitcoinlib, adjust to your stack)
-        from bitcoin.core import (
-            COutPoint,
-            CTxIn,
-            CTxOut,
-            CMutableTransaction,
-            lx,
-        )
-        from bitcoin.wallet import P2PKHBitcoinAddress
 
         txins = []
         for u in utxos:
@@ -131,35 +125,22 @@ class WIFWallet:
 
         tx = CMutableTransaction(txins, txouts)
 
-        # Sign each input with our WIF
-        from bitcoin.core import b2x
-        from bitcoin.core.script import SIGHASH_ALL
-        from bitcoin.wallet import CBitcoinSecret
-
         seckey = self._secret
+        pubkey = seckey.pub
+
+        script_pubkey = CScript(
+            [OP_DUP, OP_HASH160, Hash160(pubkey), OP_EQUALVERIFY, OP_CHECKSIG]
+        )
+
         for i in range(len(txins)):
-            # assume all inputs are P2PKH to our address
-            from bitcoin.core import Hash160
-            from bitcoin.core.script import CScript, OP_DUP, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG
-
-            pubkey = seckey.pub
-            script_pubkey = CScript(
-                [OP_DUP, OP_HASH160, Hash160(pubkey), OP_EQUALVERIFY, OP_CHECKSIG]
-            )
-
-            from bitcoin.core import SignatureHash
-
             sighash = SignatureHash(script_pubkey, tx, i, SIGHASH_ALL)
             sig = seckey.sign(sighash) + bytes([SIGHASH_ALL])
             txins[i].scriptSig = CScript([sig, pubkey])
 
         raw_hex = b2x(tx.serialize())
 
-        # Broadcast via Blockbook
         base = BLOCKBOOK_ENDPOINTS["BTC"].rstrip("/")
         url = base + "/api/v2/sendtx/"
-        import urllib.request
-
         data = json.dumps({"hex": raw_hex}).encode("utf-8")
         req = urllib.request.Request(
             url,
