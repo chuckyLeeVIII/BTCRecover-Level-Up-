@@ -1,5 +1,29 @@
 # BTCRecover-Level-Up!
 
+## INSTALL — WINDOWS / LINUX / WSL
+
+BTCRecover-Level-Up! is just Python. If you can run Python 3.9+ and a shell, it will run. [web:107][web:114]
+
+```bash
+# clone this fork
+git clone https://github.com/chuckyLeeVIII/BTCRecover-Level-Up-.git
+cd BTCRecover-Level-Up-
+
+# create and activate venv (Windows PowerShell)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# or: Linux / WSL
+python3 -m venv .venv
+source .venv/bin/activate
+
+# install deps
+pip install -r requirements.txt
+
+# run the UI
+python ui_launcher.py
+
+
 > **Trustless by design. Adversarial engineering.**  
 > On-chain royalties, off-chain penalties, innocent till inconvenient.
 
