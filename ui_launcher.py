@@ -15,7 +15,7 @@ from wif_recover_pipeline import run_wif_recovery_pipeline
 class BTCRecoverUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("BTCRecover-Level-Up")
+        self.title("BTCRecover-Level-Up — True Recovery Engine")
         self.geometry("900x650")
 
         self.search_paths = []
@@ -24,6 +24,20 @@ class BTCRecoverUI(tk.Tk):
         self._populate_defaults()
 
     def _build_widgets(self):
+        # Top banner
+        banner = tk.Label(
+            self,
+            text=(
+                "BTCRecover-Level-Up — Trustless by design. Adversarial engineering. "
+                "On-chain royalties, off-chain penalties, innocent till inconvenient."
+            ),
+            font=("Segoe UI", 12, "bold"),
+            fg="#00cc66",
+            wraplength=860,
+            justify="left",
+        )
+        banner.pack(fill=tk.X, padx=10, pady=(10, 0))
+
         # Search paths + options
         top = tk.Frame(self)
         top.pack(fill=tk.X, padx=10, pady=10)
