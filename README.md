@@ -8,7 +8,7 @@ BTCRecover-Level-Up! is the only btcrecover-derived engine that:
 - proves ownership before moving funds,
 - verifies balances across BTC and compatible chains,
 - asks you, UTXO by UTXO, before building a deposit,
-- and actually **sends** the funds with smart fee management.
+- and actually **sends** the funds with smart fee management it it didnt go threw *IT WOULDNT HAVE*.
 
 BTCRecover-Level-up! is a fork of the original
 [btcrecover](https://btcrecover.readthedocs.io/) tool, extended and
