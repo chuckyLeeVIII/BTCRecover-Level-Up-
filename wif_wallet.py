@@ -27,6 +27,7 @@ from bitcoin.core import (
     CMutableTransaction,
     b2x,
     lx,
+    Hash160,
 )
 from bitcoin.core.script import (
     CScript,
@@ -38,7 +39,6 @@ from bitcoin.core.script import (
     SignatureHash,
 )
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
-from bitcoin.core import Hash160
 
 
 class WIFWallet:
