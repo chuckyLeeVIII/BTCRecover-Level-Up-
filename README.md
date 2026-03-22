@@ -1,5 +1,15 @@
 # BTCRecover-Level-Up!
 
+> **Trustless by design. Adversarial engineering.**  
+> On-chain royalties, off-chain penalties, innocent till inconvenient.
+
+BTCRecover-Level-Up! is the only btcrecover-derived engine that:
+
+- proves ownership before moving funds,
+- verifies balances across BTC and compatible chains,
+- asks you, UTXO by UTXO, before building a deposit,
+- and actually **sends** the funds with smart fee management.
+
 BTCRecover-Level-up! is a fork of the original
 [btcrecover](https://btcrecover.readthedocs.io/) tool, extended and
 maintained by **chuckyLeeVIII**. It keeps all of the original wallet
